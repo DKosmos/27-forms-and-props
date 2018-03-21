@@ -4,8 +4,6 @@ import React from 'react';
 import ReactDom from 'react-dom';
 import request from 'superagent';
 
-// const REDDIT_API_URL = `http://reddit.com/r/${searchFormBoard}.json?limit=${searchFormLimit}`;
-
 class SearchForm extends React.Component {
   constructor(props){
     super(props);
