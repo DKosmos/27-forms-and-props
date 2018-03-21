@@ -33,7 +33,7 @@ class SearchForm extends React.Component {
 
   render(){
     return (
-      <form>
+      <form onSubmit={this.handleSubmit}>
         <input
           type='text'
           name='redditSearch'
@@ -49,9 +49,9 @@ class SearchForm extends React.Component {
           value={this.state.searchLimit}
           onChange={this.handleLimitChange} />
         <input
+          className='formButton'
           type='submit'
-          value='Search'
-          onSubmit={this.handleSearch}/>
+          value='Search' />
       </form>
     )
   }
@@ -60,11 +60,50 @@ class SearchForm extends React.Component {
 class SearchResultList extends React.Component {
   constructor(props){
     super(props);
+    this.createList = this.createList.bind(this);
+  }
+
+  createList(){
+    console.log('this.props', this.props);
+    const list = [];
+    for(var key in this.props.redditResults){
+      return (
+        <li id={key}>
+          <p>Title: {this.props.redditResults[key].title}</p>
+          <p>URL: {this.props.redditResults[key].url}</p>
+          <p>Up Votes: {this.props.redditResults[key].ups}</p>
+        </li>
+      )
+    }
+  }
+
+  render(){
+    console.log('typeof', typeof this.props.redditResults);
+    if(Object.keys(this.props.redditResults).length !== 0){
+      const list = this.createList();
+      return (
+        <div>
+          <ul>{list}</ul>
+        </div>
+      )
+    } else {
+      return (
+        <div>
+        </div>
+      )
+    }
+  }
+}
+
+class SearchError extends React.Component {
+  constructor(props){
+    super(props);
   }
 
   render(){
     return (
       <div>
+        <p>Could not find {this.props.redditSearchError} subreddit, please try again.</p>
       </div>
     )
   }
@@ -82,30 +121,41 @@ class App extends React.Component {
   }
 
   redditSelect(search, limit){
-    if(this.state.redditLookup[search] && this.state.redditLookup[search].count >= limit){
-      request.get(this.state.redditLookup[search])
-        .then( res => {
+    request.get(`http://www.reddit.com/r/${search}.json?limit=${limit}`)
+      .then( res => {
+        let redditLookup = res.body.data.children.reduce((lookup,n) => {
+          lookup[n.data.id] = {
+            url: n.data.url,
+            ups: n.data.ups,
+            title: n.data.title,
+          }
+          return lookup;
+        },{});
+
+        try{
           this.setState({
-            redditSelected: res.body,
-            redditSearchError: null
+            redditLookup: redditLookup,
+            redditSearchError: null,
           })
-        })
-        .catch(console.error);
-    } else {
-      request.get(`http://reddit.com/r/${search}.json?=${limit}`)
-        .then( res => {
-          let redditLookup = res.body;
-          console.log('redditLookup', redditLookup);
-        })
-        .catch(console.error);
-    }
+          console.log('state', this.state);
+        } catch(err) {
+          console.error(err);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        this.setState({redditSearchError: search})
+        console.log('state', this.state);
+      });
   }
 
   render(){
     return (
       <div>
           <SearchForm redditSelect={this.redditSelect}/>
-          <SearchResultList />
+          { this.state.redditSearchError ? 
+          <SearchError redditSearchError={this.state.redditSearchError} /> :
+          <SearchResultList redditResults={this.state.redditLookup}/>}
       </div>
     )
   }
