@@ -64,31 +64,29 @@ class SearchResultList extends React.Component {
   }
 
   createList(){
-    console.log('this.props', this.props);
-    const list = [];
-    for(var key in this.props.redditResults){
+    return this.props.redditResults.data.children.map((item, i) => {
       return (
-        <li id={key}>
-          <p>Title: {this.props.redditResults[key].title}</p>
-          <p>URL: {this.props.redditResults[key].url}</p>
-          <p>Up Votes: {this.props.redditResults[key].ups}</p>
+        <li key={i}>
+          <a href={item.data.url}>
+            <h1>Title: {item.data.title}</h1>
+            <p>Up Votes: {item.data.ups}</p>
+          </a>
         </li>
       )
-    }
+    });
   }
 
   render(){
-    console.log('typeof', typeof this.props.redditResults);
-    if(Object.keys(this.props.redditResults).length !== 0){
+    if(!this.props.redditResults.data){
+      return (
+        <div>
+        </div>
+      )
+    } else {
       const list = this.createList();
       return (
         <div>
           <ul>{list}</ul>
-        </div>
-      )
-    } else {
-      return (
-        <div>
         </div>
       )
     }
@@ -123,21 +121,13 @@ class App extends React.Component {
   redditSelect(search, limit){
     request.get(`http://www.reddit.com/r/${search}.json?limit=${limit}`)
       .then( res => {
-        let redditLookup = res.body.data.children.reduce((lookup,n) => {
-          lookup[n.data.id] = {
-            url: n.data.url,
-            ups: n.data.ups,
-            title: n.data.title,
-          }
-          return lookup;
-        },{});
+        let redditLookup = res.body;
 
         try{
           this.setState({
             redditLookup: redditLookup,
             redditSearchError: null,
           })
-          console.log('state', this.state);
         } catch(err) {
           console.error(err);
         }
@@ -145,7 +135,6 @@ class App extends React.Component {
       .catch(err => {
         console.error(err);
         this.setState({redditSearchError: search})
-        console.log('state', this.state);
       });
   }
 
